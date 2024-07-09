@@ -1,7 +1,10 @@
 import { Injectable } from '@stlmpp/di';
 
+export type MethodType = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
 export interface ControllerOptions {
   path?: string;
+  method?: MethodType;
 }
 
 const ControllerMetadataSymbol = Symbol('ControllerMetadata');
