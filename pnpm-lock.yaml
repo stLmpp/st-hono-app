@@ -11,6 +11,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.12.0
         version: 1.12.0
+      '@hono/swagger-ui':
+        specifier: ^0.4.0
+        version: 0.4.0(hono@4.4.12)
       '@st-api/core':
         specifier: ^5.0.2
         version: 5.0.2(vpnauiv7hn7k4jjf6oygao762m)
@@ -284,6 +287,11 @@ packages:
   '@hono/node-server@1.12.0':
     resolution: {integrity: sha512-e6oHjNiErRxsZRZBmc2KucuvY3btlO/XPncIpP2X75bRdTilF9GLjm3NHvKKunpJbbJJj31/FoPTksTf8djAVw==}
     engines: {node: '>=18.14.1'}
+
+  '@hono/swagger-ui@0.4.0':
+    resolution: {integrity: sha512-8lF+dexzgV2HRM1R/gf49E5djroq4jVMYMSwLkSF9pT0I6sYhuqirFDCRFrBtbbLCBsKzw6f2MF5rS+WY3d7Nw==}
+    peerDependencies:
+      hono: '*'
 
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
@@ -2472,6 +2480,10 @@ snapshots:
   '@eslint/js@8.57.0': {}
 
   '@hono/node-server@1.12.0': {}
+
+  '@hono/swagger-ui@0.4.0(hono@4.4.12)':
+    dependencies:
+      hono: 4.4.12
 
   '@humanwhocodes/config-array@0.11.14':
     dependencies:

@@ -10,4 +10,4 @@ const app = await createHonoApp({
 
 app.serve();
 
-console.log('Listening at http://localhost:3000 ');
+console.log('Listening at http://localhost:3000');

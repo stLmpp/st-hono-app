@@ -1,11 +1,14 @@
+import { ZodSchema } from 'zod';
+
 const HeadersMetadataSymbol = Symbol('HeadersMetadata');
 
 export interface HeadersMetadata {
+  schema: ZodSchema | undefined;
   parameterIndex: number;
 }
 
 interface Headers {
-  (): ParameterDecorator;
+  (schema?: ZodSchema): ParameterDecorator;
   getMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
@@ -28,10 +31,11 @@ const setMetadata: Headers['setMetadata'] = (target, propertyKey, metadata) => {
   );
 };
 
-function Decorator(): ParameterDecorator {
+function Decorator(schema?: ZodSchema): ParameterDecorator {
   return (target, propertyKey, parameterIndex) => {
     setMetadata(target.constructor, propertyKey, {
       parameterIndex,
+      schema,
     });
   };
 }

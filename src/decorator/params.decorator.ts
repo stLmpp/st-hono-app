@@ -3,12 +3,12 @@ import { ZodObject, ZodRecord, ZodSchema } from 'zod';
 const ParamsMetadataSymbol = Symbol('ParamsMetadata');
 
 export interface ParamsMetadata {
-  schema: ZodSchema;
+  schema: ZodSchema | undefined;
   parameterIndex: number;
 }
 
 interface Params {
-  (schema: ZodSchema): ParameterDecorator;
+  (schema?: ZodSchema): ParameterDecorator;
   getMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
@@ -31,7 +31,7 @@ const setMetadata: Params['setMetadata'] = (target, propertyKey, metadata) => {
   );
 };
 
-function Decorator(schema: ZodSchema): ParameterDecorator {
+function Decorator(schema?: ZodSchema): ParameterDecorator {
   const isValidSchema =
     schema instanceof ZodObject || schema instanceof ZodRecord;
   if (!isValidSchema) {
