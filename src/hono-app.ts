@@ -11,14 +11,20 @@ import {
   BAD_REQUEST_PARAMS,
   BAD_REQUEST_QUERY,
   formatZodErrorString,
+  INVALID_RESPONSE,
 } from '@st-api/core';
 import { apiStateMiddleware } from './api-state.middleware.js';
 import { Query } from './decorator/query.decorator.js';
 import { Headers } from './decorator/headers.decorator.js';
 import { Body } from './decorator/body.decorator.js';
-import type { OpenAPIObject, OperationObject } from 'openapi3-ts/oas30';
+import { Response } from './decorator/response.decorator.js';
+import type {
+  OpenAPIObject,
+  OperationObject,
+  ResponseObject,
+} from 'openapi3-ts/oas30';
 import { swaggerUI } from '@hono/swagger-ui';
-import { StatusCodes } from 'http-status-codes';
+import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 import { generateSchema } from '@st-api/zod-openapi';
 import { ZodObject, ZodSchema } from 'zod';
 
@@ -57,6 +63,9 @@ export async function createHonoApp({
       '/openapi',
       swaggerUI({
         url: '/openapi.json',
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        deepLinking: true,
       }),
     )
     .get('/help', (c) => c.redirect('/openapi', StatusCodes.MOVED_PERMANENTLY));
@@ -76,15 +85,28 @@ export async function createHonoApp({
     const queryMetadata = Query.getMetadata(controller, propertyKey);
     const headersMetadata = Headers.getMetadata(controller, propertyKey);
     const bodyMetadata = Body.getMetadata(controller, propertyKey);
+    const responseMetadata = Response.getMetadata(controller, propertyKey);
     const method = rawMethod.toLowerCase() as Lowercase<MethodType>;
-    const path = metadata.path ?? '/';
+    let path = metadata.path ?? '/';
+    if (!path.startsWith('/')) {
+      path = `/${path}`;
+    }
+    const pathOpenapi = path
+      .split('/')
+      .map((part) => {
+        if (!part.startsWith(':')) {
+          return part;
+        }
+        return `{${part.slice(1)}}`;
+      })
+      .join('/');
+    const pathOperationId = path.replaceAll('/', '_').replaceAll(':', 'p~');
     const operation: OperationObject = {
-      responses: {
-        200: {},
-      },
+      responses: {},
+      operationId: `${method.toUpperCase()}-${pathOperationId}`,
     };
-    openapiDocument.paths[path] = Object.assign(
-      openapiDocument.paths[path] ?? {},
+    openapiDocument.paths[pathOpenapi] = Object.assign(
+      openapiDocument.paths[pathOpenapi] ?? {},
       { [method]: operation },
     );
     if (bodyMetadata?.schema) {
@@ -124,8 +146,18 @@ export async function createHonoApp({
         });
       }
     }
+    if (responseMetadata) {
+      operation.responses[responseMetadata.statusCode] = {
+        description: getReasonPhrase(responseMetadata.statusCode),
+        content: {
+          'application/json': {
+            schema: generateSchema(responseMetadata.schema),
+          },
+        },
+      } satisfies ResponseObject;
+    }
     hono[method](
-      metadata.path ?? '/',
+      path,
       validator('param', async (value, c) => {
         if (!paramsMetadata?.schema) {
           return value;
@@ -190,7 +222,21 @@ export async function createHonoApp({
         if (headersMetadata) {
           args[headersMetadata.parameterIndex] = c.req.valid('header');
         }
-        const response = await instance.handle(...args);
+        if (bodyMetadata) {
+          args[bodyMetadata.parameterIndex] = c.req.valid('json');
+        }
+        let response = await instance.handle(...args);
+        if (responseMetadata) {
+          const result = await responseMetadata.schema.safeParseAsync(response);
+          if (!result.success) {
+            const exception = INVALID_RESPONSE(
+              formatZodErrorString(result.error),
+            );
+            return c.json(exception.toJSON(), exception.getStatus() as never);
+          }
+          response = result.data;
+          c.status(responseMetadata.statusCode as never);
+        }
         return typeof response === 'string'
           ? c.text(response)
           : c.json(response);

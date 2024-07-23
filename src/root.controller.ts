@@ -5,6 +5,8 @@ import { ParamIntSchema } from '@st-api/core';
 import { Query } from './decorator/query.decorator.js';
 import { Headers } from './decorator/headers.decorator.js';
 import { Body } from './decorator/body.decorator.js';
+import { Response } from './decorator/response.decorator.js';
+import { StatusCodes } from 'http-status-codes';
 
 export interface Handler {
   handle(...args: any[]): any | Promise<any>;
@@ -20,12 +22,20 @@ type ParamsType = z.output<typeof ParamsSchema>;
   method: 'POST',
 })
 export class RootController implements Handler {
+  @Response(
+    z.object({
+      id: z.number(),
+    }),
+    StatusCodes.CREATED,
+  )
   async handle(
     @Params(ParamsSchema) params: ParamsType,
     @Query(ParamsSchema) query: ParamsType,
     @Headers() headers: Record<string, string>,
     @Body(ParamsSchema) body: ParamsType,
   ): Promise<any> {
-    return { params, query, headers, body };
+    return {
+      id: params.id,
+    };
   }
 }
