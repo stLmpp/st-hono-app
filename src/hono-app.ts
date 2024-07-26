@@ -3,21 +3,15 @@ import { Injector, Provider } from '@stlmpp/di';
 import { Hono } from 'hono';
 import { serve, ServerType } from '@hono/node-server';
 import { Handler } from './root.controller.js';
-import { Controller, MethodType } from './decorator/controller.decorator.js';
-import { Params } from './decorator/params.decorator.js';
-import { validator } from 'hono/validator';
+import { MethodType } from './decorator/controller.decorator.js';
 import {
-  BAD_REQUEST_BODY,
-  BAD_REQUEST_PARAMS,
-  BAD_REQUEST_QUERY,
+  Exception,
   formatZodErrorString,
   INVALID_RESPONSE,
+  safeAsync,
+  UNKNOWN_INTERNAL_SERVER_ERROR,
 } from '@st-api/core';
 import { apiStateMiddleware } from './api-state.middleware.js';
-import { Query } from './decorator/query.decorator.js';
-import { Headers } from './decorator/headers.decorator.js';
-import { Body } from './decorator/body.decorator.js';
-import { Response } from './decorator/response.decorator.js';
 import type {
   OpenAPIObject,
   OperationObject,
@@ -26,7 +20,11 @@ import type {
 import { swaggerUI } from '@hono/swagger-ui';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 import { generateSchema } from '@st-api/zod-openapi';
-import { ZodObject, ZodSchema } from 'zod';
+import { createHeaderValidator } from './create-header-validator.js';
+import { createBodyValidator } from './create-body-validator.js';
+import { createQueryValidator } from './create-query-validator.js';
+import { createParamValidator } from './create-param-validator.js';
+import { getControllerFullMetadata } from './get-controller-full-metadata.js';
 
 export interface HonoAppOptions {
   hono: Hono;
@@ -71,21 +69,22 @@ export async function createHonoApp({
     .get('/help', (c) => c.redirect('/openapi', StatusCodes.MOVED_PERMANENTLY));
 
   for (const controller of controllers) {
-    const metadata = Controller.getMetadata(controller);
-    if (!metadata) {
+    const fullMetadata = getControllerFullMetadata(controller);
+    if (!fullMetadata) {
       throw new Error(
         `Could resolve metadata for controller ${controller?.name}. Did you forget to put it in the controllers array?`,
       );
     }
-    injector.register(controller);
-    const instance = await injector.resolve(controller);
+    const {
+      controller: metadata,
+      body: bodyMetadata,
+      params: paramsMetadata,
+      response: responseMetadata,
+      query: queryMetadata,
+      headers: headersMetadata,
+    } = fullMetadata;
+    const instance = await injector.register(controller).resolve(controller);
     const rawMethod = metadata.method ?? 'GET';
-    const propertyKey: keyof Handler = 'handle';
-    const paramsMetadata = Params.getMetadata(controller, propertyKey);
-    const queryMetadata = Query.getMetadata(controller, propertyKey);
-    const headersMetadata = Headers.getMetadata(controller, propertyKey);
-    const bodyMetadata = Body.getMetadata(controller, propertyKey);
-    const responseMetadata = Response.getMetadata(controller, propertyKey);
     const method = rawMethod.toLowerCase() as Lowercase<MethodType>;
     let path = metadata.path ?? '/';
     if (!path.startsWith('/')) {
@@ -121,10 +120,7 @@ export async function createHonoApp({
     }
     operation.parameters ??= [];
     if (paramsMetadata?.schema) {
-      const paramsSchema = paramsMetadata.schema as ZodObject<
-        Record<string, ZodSchema>
-      >;
-      for (const [key, value] of Object.entries(paramsSchema.shape)) {
+      for (const [key, value] of Object.entries(paramsMetadata.schema.shape)) {
         operation.parameters.push({
           name: key,
           required: !value.isOptional(),
@@ -134,10 +130,7 @@ export async function createHonoApp({
       }
     }
     if (queryMetadata?.schema) {
-      const querySchema = queryMetadata.schema as ZodObject<
-        Record<string, ZodSchema>
-      >;
-      for (const [key, value] of Object.entries(querySchema.shape)) {
+      for (const [key, value] of Object.entries(queryMetadata.schema.shape)) {
         operation.parameters.push({
           name: key,
           required: !value.isOptional(),
@@ -158,59 +151,10 @@ export async function createHonoApp({
     }
     hono[method](
       path,
-      validator('param', async (value, c) => {
-        if (!paramsMetadata?.schema) {
-          return value;
-        }
-        const result = await paramsMetadata.schema.safeParseAsync(value);
-        if (!result.success) {
-          const exception = BAD_REQUEST_PARAMS(
-            formatZodErrorString(result.error),
-          );
-          return c.json(exception.toJSON(), exception.getStatus() as never);
-        }
-        return result.data;
-      }),
-      validator('query', async (value, c) => {
-        if (!queryMetadata?.schema) {
-          return value;
-        }
-        const result = await queryMetadata.schema.safeParseAsync(value);
-        if (!result.success) {
-          const exception = BAD_REQUEST_QUERY(
-            formatZodErrorString(result.error),
-          );
-          return c.json(exception.toJSON(), exception.getStatus() as never);
-        }
-        return result.data;
-      }),
-      validator('json', async (value, c) => {
-        if (!bodyMetadata?.schema) {
-          return value;
-        }
-        const result = await bodyMetadata.schema.safeParseAsync(value);
-        if (!result.success) {
-          const exception = BAD_REQUEST_BODY(
-            formatZodErrorString(result.error),
-          );
-          return c.json(exception.toJSON(), exception.getStatus() as never);
-        }
-        return result.data;
-      }),
-      validator('header', async (value, c) => {
-        if (!headersMetadata?.schema) {
-          return value;
-        }
-        const result = await headersMetadata.schema.safeParseAsync(value);
-        if (!result.success) {
-          // TODO add exception to BAD_REQUEST_HEADERS on core
-          const exception = BAD_REQUEST_BODY(
-            formatZodErrorString(result.error),
-          );
-          return c.json(exception.toJSON(), exception.getStatus() as never);
-        }
-        return result.data;
-      }),
+      createParamValidator(paramsMetadata),
+      createQueryValidator(queryMetadata),
+      createBodyValidator(bodyMetadata),
+      createHeaderValidator(headersMetadata),
       async (c) => {
         const args = [];
         if (paramsMetadata) {
@@ -243,6 +187,18 @@ export async function createHonoApp({
       },
     );
   }
+
+  hono.use(async (c, next) => {
+    const [error] = await safeAsync(() => next());
+    if (!error) {
+      return;
+    }
+    if (error instanceof Exception) {
+      return c.json(error.toJSON(), error.getStatus() as never);
+    }
+    const unknownError = UNKNOWN_INTERNAL_SERVER_ERROR();
+    return c.json(unknownError.toJSON(), unknownError.getStatus() as never);
+  });
 
   return {
     hono,

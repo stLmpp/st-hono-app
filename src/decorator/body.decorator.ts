@@ -2,7 +2,7 @@ import { ZodSchema } from 'zod';
 
 const BodyMetadataSymbol = Symbol('BodyMetadata');
 
-export interface QueryMetadata {
+export interface BodyMetadata {
   schema: ZodSchema | undefined;
   parameterIndex: number;
 }
@@ -12,11 +12,11 @@ interface Body {
   getMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-  ): QueryMetadata | undefined;
+  ): BodyMetadata | undefined;
   setMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-    metadata: QueryMetadata,
+    metadata: BodyMetadata,
   ): void;
 }
 

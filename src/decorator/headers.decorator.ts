@@ -1,9 +1,9 @@
-import { ZodSchema } from 'zod';
+import { ZodObject, ZodSchema } from 'zod';
 
 const HeadersMetadataSymbol = Symbol('HeadersMetadata');
 
 export interface HeadersMetadata {
-  schema: ZodSchema | undefined;
+  schema: ZodObject<Record<string, ZodSchema>> | undefined;
   parameterIndex: number;
 }
 
@@ -32,6 +32,13 @@ const setMetadata: Headers['setMetadata'] = (target, propertyKey, metadata) => {
 };
 
 function Decorator(schema?: ZodSchema): ParameterDecorator {
+  const isValidSchema = schema instanceof ZodObject;
+
+  if (!isValidSchema) {
+    // TODO better error message
+    throw new Error('Not valid zod schema');
+  }
+
   return (target, propertyKey, parameterIndex) => {
     setMetadata(target.constructor, propertyKey, {
       parameterIndex,

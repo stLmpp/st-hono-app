@@ -1,9 +1,9 @@
-import { ZodObject, ZodRecord, ZodSchema } from 'zod';
+import { ZodObject, ZodSchema } from 'zod';
 
 const ParamsMetadataSymbol = Symbol('QueryMetadata');
 
 export interface QueryMetadata {
-  schema: ZodSchema | undefined;
+  schema: ZodObject<Record<string, ZodSchema>> | undefined;
   parameterIndex: number;
 }
 
@@ -32,8 +32,7 @@ const setMetadata: Query['setMetadata'] = (target, propertyKey, metadata) => {
 };
 
 function Decorator(schema?: ZodSchema): ParameterDecorator {
-  const isValidSchema =
-    schema instanceof ZodObject || schema instanceof ZodRecord;
+  const isValidSchema = schema instanceof ZodObject;
   if (!isValidSchema) {
     // TODO better error message
     throw new Error('Not valid zod schema');
