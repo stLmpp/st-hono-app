@@ -34,7 +34,7 @@ const setMetadata: Headers['setMetadata'] = (target, propertyKey, metadata) => {
 function Decorator(schema?: ZodSchema): ParameterDecorator {
   const isValidSchema = schema instanceof ZodObject;
 
-  if (!isValidSchema) {
+  if (schema && !isValidSchema) {
     // TODO better error message
     throw new Error('Not valid zod schema');
   }

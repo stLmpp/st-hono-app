@@ -1,22 +1,22 @@
-import { Params, ParamsMetadata } from './decorator/params.decorator.js';
-import { Query, QueryMetadata } from './decorator/query.decorator.js';
+import { ZParams, ZParamsMetadata } from './decorator/params.decorator.js';
+import { ZQuery, ZQueryMetadata } from './decorator/query.decorator.js';
 import { Headers, HeadersMetadata } from './decorator/headers.decorator.js';
-import { Body, BodyMetadata } from './decorator/body.decorator.js';
-import { Response, ResponseMetadata } from './decorator/response.decorator.js';
+import { ZBody, ZBodyMetadata } from './decorator/body.decorator.js';
+import { ZRes, ZResMetadata } from './decorator/response.decorator.js';
 import {
   Controller,
   ControllerOptions,
 } from './decorator/controller.decorator.js';
 import { Class } from 'type-fest';
-import { Handler } from './root.controller.js';
+import { Handler } from '../test-app/root.controller.js';
 
 interface ControllerFullMetadata {
   controller: ControllerOptions;
-  params: ParamsMetadata | undefined;
-  query: QueryMetadata | undefined;
+  params: ZParamsMetadata | undefined;
+  query: ZQueryMetadata | undefined;
   headers: HeadersMetadata | undefined;
-  body: BodyMetadata | undefined;
-  response: ResponseMetadata | undefined;
+  body: ZBodyMetadata | undefined;
+  response: ZResMetadata | undefined;
 }
 
 export function getControllerFullMetadata(
@@ -29,10 +29,10 @@ export function getControllerFullMetadata(
   const propertyKey: keyof Handler = 'handle';
   return {
     controller,
-    params: Params.getMetadata(target, propertyKey),
-    query: Query.getMetadata(target, propertyKey),
+    params: ZParams.getMetadata(target, propertyKey),
+    query: ZQuery.getMetadata(target, propertyKey),
     headers: Headers.getMetadata(target, propertyKey),
-    body: Body.getMetadata(target, propertyKey),
-    response: Response.getMetadata(target, propertyKey),
+    body: ZBody.getMetadata(target, propertyKey),
+    response: ZRes.getMetadata(target, propertyKey),
   };
 }

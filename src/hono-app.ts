@@ -2,14 +2,12 @@ import type { Class } from 'type-fest';
 import { Injector, Provider } from '@stlmpp/di';
 import { Hono } from 'hono';
 import { serve, ServerType } from '@hono/node-server';
-import { Handler } from './root.controller.js';
+import { Handler } from '../test-app/root.controller.js';
 import { MethodType } from './decorator/controller.decorator.js';
 import {
-  Exception,
   formatZodErrorString,
   INVALID_RESPONSE,
   safeAsync,
-  UNKNOWN_INTERNAL_SERVER_ERROR,
 } from '@st-api/core';
 import { apiStateMiddleware } from './api-state.middleware.js';
 import type {
@@ -25,6 +23,7 @@ import { createBodyValidator } from './create-body-validator.js';
 import { createQueryValidator } from './create-query-validator.js';
 import { createParamValidator } from './create-param-validator.js';
 import { getControllerFullMetadata } from './get-controller-full-metadata.js';
+import { throwInternal } from './throw-internal.js';
 
 export interface HonoAppOptions {
   hono: Hono;
@@ -57,6 +56,28 @@ export async function createHonoApp({
   hono
     .get('/openapi.json', (c) => c.json(openapiDocument))
     .use(apiStateMiddleware())
+    // .use(async (c, next) => {
+    //   console.log('Entering error handler');
+    //
+    //   await next();
+    //
+    //   console.log('Exiting error handler', c.error);
+    //
+    //   if (!c.error) {
+    //     return;
+    //   }
+    //   const exception =
+    //     c.error instanceof Exception
+    //       ? c.error
+    //       : UNKNOWN_INTERNAL_SERVER_ERROR();
+    //   return c.newResponse(
+    //     JSON.stringify(exception.toJSON()),
+    //     exception.getStatus() as never,
+    //     {
+    //       'Content-Type': 'application/json',
+    //     },
+    //   );
+    // })
     .use(
       '/openapi',
       swaggerUI({
@@ -156,7 +177,7 @@ export async function createHonoApp({
       createBodyValidator(bodyMetadata),
       createHeaderValidator(headersMetadata),
       async (c) => {
-        const args = [];
+        const args: unknown[] = [];
         if (paramsMetadata) {
           args[paramsMetadata.parameterIndex] = c.req.valid('param');
         }
@@ -169,7 +190,13 @@ export async function createHonoApp({
         if (bodyMetadata) {
           args[bodyMetadata.parameterIndex] = c.req.valid('json');
         }
-        let response = await instance.handle(...args);
+        const [error, response] = await safeAsync(() =>
+          instance.handle(...args),
+        );
+        if (error) {
+          throwInternal(error);
+        }
+        let responseParsed: any = response;
         if (responseMetadata) {
           const result = await responseMetadata.schema.safeParseAsync(response);
           if (!result.success) {
@@ -178,27 +205,15 @@ export async function createHonoApp({
             );
             return c.json(exception.toJSON(), exception.getStatus() as never);
           }
-          response = result.data;
+          responseParsed = result.data;
           c.status(responseMetadata.statusCode as never);
         }
-        return typeof response === 'string'
-          ? c.text(response)
-          : c.json(response);
+        return typeof responseParsed === 'string'
+          ? c.text(responseParsed)
+          : c.json(responseParsed);
       },
     );
   }
-
-  hono.use(async (c, next) => {
-    const [error] = await safeAsync(() => next());
-    if (!error) {
-      return;
-    }
-    if (error instanceof Exception) {
-      return c.json(error.toJSON(), error.getStatus() as never);
-    }
-    const unknownError = UNKNOWN_INTERNAL_SERVER_ERROR();
-    return c.json(unknownError.toJSON(), unknownError.getStatus() as never);
-  });
 
   return {
     hono,

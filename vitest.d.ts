@@ -1,4 +1,4 @@
-import { Exception } from './src/index.js';
+import { Exception } from './test-app/index.js';
 
 interface CustomMatchers<R = unknown> {
   toThrowException(expected: Exception): R;

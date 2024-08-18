@@ -1,30 +1,30 @@
 import { ZodSchema } from 'zod';
 
-const BodyMetadataSymbol = Symbol('BodyMetadata');
+const ZBodyMetadataSymbol = Symbol('ZBodyMetadata');
 
-export interface BodyMetadata {
+export interface ZBodyMetadata {
   schema: ZodSchema | undefined;
   parameterIndex: number;
 }
 
-interface Body {
+interface ZBody {
   (schema?: ZodSchema): ParameterDecorator;
   getMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-  ): BodyMetadata | undefined;
+  ): ZBodyMetadata | undefined;
   setMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-    metadata: BodyMetadata,
+    metadata: ZBodyMetadata,
   ): void;
 }
 
-const getMetadata: Body['getMetadata'] = (target, propertyKey) =>
-  Reflect.getMetadata(BodyMetadataSymbol, target, propertyKey ?? '');
-const setMetadata: Body['setMetadata'] = (target, propertyKey, metadata) => {
+const getMetadata: ZBody['getMetadata'] = (target, propertyKey) =>
+  Reflect.getMetadata(ZBodyMetadataSymbol, target, propertyKey ?? '');
+const setMetadata: ZBody['setMetadata'] = (target, propertyKey, metadata) => {
   Reflect.defineMetadata(
-    BodyMetadataSymbol,
+    ZBodyMetadataSymbol,
     metadata,
     target,
     propertyKey ?? '',
@@ -40,7 +40,7 @@ function Decorator(schema?: ZodSchema): ParameterDecorator {
   };
 }
 
-export const Body: Body = Object.assign(Decorator, {
+export const ZBody: ZBody = Object.assign(Decorator, {
   getMetadata,
   setMetadata,
 });

@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Hono } from 'hono';
-import { createHonoApp } from './hono-app.js';
+import { createHonoApp } from '../src/hono-app.js';
 import { RootController } from './root.controller.js';
 
 const app = await createHonoApp({

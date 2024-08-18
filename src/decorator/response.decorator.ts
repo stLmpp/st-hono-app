@@ -1,35 +1,31 @@
 import { z, ZodSchema } from 'zod';
 
-const ResponseMetadataSymbol = Symbol('ResponseMetadata');
+const ZResMetadataSymbol = Symbol('ZResMetadata');
 
-export interface ResponseMetadata {
+export interface ZResMetadata {
   schema: ZodSchema;
   statusCode: number;
 }
 
-interface Response {
+interface ZRes {
   (schema?: ZodSchema, status?: number): ClassDecorator & MethodDecorator;
   getMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-  ): ResponseMetadata | undefined;
+  ): ZResMetadata | undefined;
   setMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-    metadata: ResponseMetadata,
+    metadata: ZResMetadata,
   ): void;
 }
 
-const getMetadata: Response['getMetadata'] = (target, propertyKey) =>
-  Reflect.getMetadata(ResponseMetadataSymbol, target, propertyKey ?? '') ??
-  Reflect.getMetadata(ResponseMetadataSymbol, target);
-const setMetadata: Response['setMetadata'] = (
-  target,
-  propertyKey,
-  metadata,
-) => {
+const getMetadata: ZRes['getMetadata'] = (target, propertyKey) =>
+  Reflect.getMetadata(ZResMetadataSymbol, target, propertyKey ?? '') ??
+  Reflect.getMetadata(ZResMetadataSymbol, target);
+const setMetadata: ZRes['setMetadata'] = (target, propertyKey, metadata) => {
   Reflect.defineMetadata(
-    ResponseMetadataSymbol,
+    ZResMetadataSymbol,
     metadata,
     target,
     propertyKey ?? '',
@@ -52,7 +48,7 @@ function Decorator(
   };
 }
 
-export const Response: Response = Object.assign(Decorator, {
+export const ZRes: ZRes = Object.assign(Decorator, {
   getMetadata,
   setMetadata,
 });

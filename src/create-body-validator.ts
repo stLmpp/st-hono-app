@@ -1,17 +1,17 @@
-import { BodyMetadata } from './decorator/body.decorator.js';
+import { ZBodyMetadata } from './decorator/body.decorator.js';
 import { validator } from 'hono/validator';
 import { BAD_REQUEST_BODY, formatZodErrorString } from '@st-api/core';
+import { throwInternal } from './throw-internal.js';
 
-export function createBodyValidator(metadata: BodyMetadata | undefined) {
+export function createBodyValidator(metadata: ZBodyMetadata | undefined) {
   if (!metadata?.schema) {
     return validator('json', (value) => value);
   }
   const { schema } = metadata;
-  return validator('json', async (value, c) => {
+  return validator('json', async (value) => {
     const result = await schema.safeParseAsync(value);
     if (!result.success) {
-      const exception = BAD_REQUEST_BODY(formatZodErrorString(result.error));
-      return c.json(exception.toJSON(), exception.getStatus() as never);
+      throwInternal(BAD_REQUEST_BODY(formatZodErrorString(result.error)));
     }
     return result.data;
   });

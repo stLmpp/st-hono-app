@@ -1,30 +1,30 @@
 import { ZodObject, ZodSchema } from 'zod';
 
-const ParamsMetadataSymbol = Symbol('ParamsMetadata');
+const ZParamsMetadataSymbol = Symbol('ZParamsMetadata');
 
-export interface ParamsMetadata {
+export interface ZParamsMetadata {
   schema: ZodObject<Record<string, ZodSchema>> | undefined;
   parameterIndex: number;
 }
 
-interface Params {
+interface ZParams {
   (schema?: ZodSchema): ParameterDecorator;
   getMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-  ): ParamsMetadata | undefined;
+  ): ZParamsMetadata | undefined;
   setMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-    metadata: ParamsMetadata,
+    metadata: ZParamsMetadata,
   ): void;
 }
 
-const getMetadata: Params['getMetadata'] = (target, propertyKey) =>
-  Reflect.getMetadata(ParamsMetadataSymbol, target, propertyKey ?? '');
-const setMetadata: Params['setMetadata'] = (target, propertyKey, metadata) => {
+const getMetadata: ZParams['getMetadata'] = (target, propertyKey) =>
+  Reflect.getMetadata(ZParamsMetadataSymbol, target, propertyKey ?? '');
+const setMetadata: ZParams['setMetadata'] = (target, propertyKey, metadata) => {
   Reflect.defineMetadata(
-    ParamsMetadataSymbol,
+    ZParamsMetadataSymbol,
     metadata,
     target,
     propertyKey ?? '',
@@ -33,7 +33,7 @@ const setMetadata: Params['setMetadata'] = (target, propertyKey, metadata) => {
 
 function Decorator(schema?: ZodSchema): ParameterDecorator {
   const isValidSchema = schema instanceof ZodObject;
-  if (!isValidSchema) {
+  if (schema && !isValidSchema) {
     // TODO better error message
     throw new Error('Not valid zod schema');
   }
@@ -45,7 +45,7 @@ function Decorator(schema?: ZodSchema): ParameterDecorator {
   };
 }
 
-export const Params: Params = Object.assign(Decorator, {
+export const ZParams: ZParams = Object.assign(Decorator, {
   getMetadata,
   setMetadata,
 });
