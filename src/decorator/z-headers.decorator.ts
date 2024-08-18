@@ -1,30 +1,34 @@
 import { ZodObject, ZodSchema } from 'zod';
 
-const HeadersMetadataSymbol = Symbol('HeadersMetadata');
+const ZHeadersMetadataSymbol = Symbol('ZHeadersMetadata');
 
-export interface HeadersMetadata {
+export interface ZHeadersMetadata {
   schema: ZodObject<Record<string, ZodSchema>> | undefined;
   parameterIndex: number;
 }
 
-interface Headers {
+interface ZHeaders {
   (schema?: ZodSchema): ParameterDecorator;
   getMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-  ): HeadersMetadata | undefined;
+  ): ZHeadersMetadata | undefined;
   setMetadata(
     target: any,
     propertyKey: string | symbol | undefined,
-    metadata: HeadersMetadata,
+    metadata: ZHeadersMetadata,
   ): void;
 }
 
-const getMetadata: Headers['getMetadata'] = (target, propertyKey) =>
-  Reflect.getMetadata(HeadersMetadataSymbol, target, propertyKey ?? '');
-const setMetadata: Headers['setMetadata'] = (target, propertyKey, metadata) => {
+const getMetadata: ZHeaders['getMetadata'] = (target, propertyKey) =>
+  Reflect.getMetadata(ZHeadersMetadataSymbol, target, propertyKey ?? '');
+const setMetadata: ZHeaders['setMetadata'] = (
+  target,
+  propertyKey,
+  metadata,
+) => {
   Reflect.defineMetadata(
-    HeadersMetadataSymbol,
+    ZHeadersMetadataSymbol,
     metadata,
     target,
     propertyKey ?? '',
@@ -47,7 +51,7 @@ function Decorator(schema?: ZodSchema): ParameterDecorator {
   };
 }
 
-export const Headers: Headers = Object.assign(Decorator, {
+export const ZHeaders: ZHeaders = Object.assign(Decorator, {
   getMetadata,
   setMetadata,
 });

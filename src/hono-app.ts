@@ -10,20 +10,15 @@ import {
   safeAsync,
 } from '@st-api/core';
 import { apiStateMiddleware } from './api-state.middleware.js';
-import type {
-  OpenAPIObject,
-  OperationObject,
-  ResponseObject,
-} from 'openapi3-ts/oas30';
 import { swaggerUI } from '@hono/swagger-ui';
-import { getReasonPhrase, StatusCodes } from 'http-status-codes';
-import { generateSchema } from '@st-api/zod-openapi';
+import { StatusCodes } from 'http-status-codes';
 import { createHeaderValidator } from './create-header-validator.js';
 import { createBodyValidator } from './create-body-validator.js';
 import { createQueryValidator } from './create-query-validator.js';
 import { createParamValidator } from './create-param-validator.js';
 import { getControllerFullMetadata } from './get-controller-full-metadata.js';
 import { throwInternal } from './throw-internal.js';
+import { Openapi } from './openapi.js';
 
 export interface HonoAppOptions {
   hono: Hono;
@@ -44,40 +39,18 @@ export async function createHonoApp({
   const injector = Injector.create('App');
   injector.register(providers ?? []);
 
-  const openapiDocument: OpenAPIObject = {
+  const openapi = new Openapi({
     openapi: '3.0.0',
     info: {
       title: 'App',
       version: '1.0.0',
     },
     paths: {},
-  };
+  });
 
   hono
-    .get('/openapi.json', (c) => c.json(openapiDocument))
+    .get('/openapi.json', (c) => c.json(openapi.getDocument()))
     .use(apiStateMiddleware())
-    // .use(async (c, next) => {
-    //   console.log('Entering error handler');
-    //
-    //   await next();
-    //
-    //   console.log('Exiting error handler', c.error);
-    //
-    //   if (!c.error) {
-    //     return;
-    //   }
-    //   const exception =
-    //     c.error instanceof Exception
-    //       ? c.error
-    //       : UNKNOWN_INTERNAL_SERVER_ERROR();
-    //   return c.newResponse(
-    //     JSON.stringify(exception.toJSON()),
-    //     exception.getStatus() as never,
-    //     {
-    //       'Content-Type': 'application/json',
-    //     },
-    //   );
-    // })
     .use(
       '/openapi',
       swaggerUI({
@@ -111,65 +84,7 @@ export async function createHonoApp({
     if (!path.startsWith('/')) {
       path = `/${path}`;
     }
-    const pathOpenapi = path
-      .split('/')
-      .map((part) => {
-        if (!part.startsWith(':')) {
-          return part;
-        }
-        return `{${part.slice(1)}}`;
-      })
-      .join('/');
-    const pathOperationId = path.replaceAll('/', '_').replaceAll(':', 'p~');
-    const operation: OperationObject = {
-      responses: {},
-      operationId: `${method.toUpperCase()}-${pathOperationId}`,
-    };
-    openapiDocument.paths[pathOpenapi] = Object.assign(
-      openapiDocument.paths[pathOpenapi] ?? {},
-      { [method]: operation },
-    );
-    if (bodyMetadata?.schema) {
-      operation.requestBody = {
-        required: !bodyMetadata.schema.isOptional(),
-        content: {
-          'application/json': {
-            schema: generateSchema(bodyMetadata?.schema),
-          },
-        },
-      };
-    }
-    operation.parameters ??= [];
-    if (paramsMetadata?.schema) {
-      for (const [key, value] of Object.entries(paramsMetadata.schema.shape)) {
-        operation.parameters.push({
-          name: key,
-          required: !value.isOptional(),
-          in: 'query',
-          schema: generateSchema(value),
-        });
-      }
-    }
-    if (queryMetadata?.schema) {
-      for (const [key, value] of Object.entries(queryMetadata.schema.shape)) {
-        operation.parameters.push({
-          name: key,
-          required: !value.isOptional(),
-          in: 'path',
-          schema: generateSchema(value),
-        });
-      }
-    }
-    if (responseMetadata) {
-      operation.responses[responseMetadata.statusCode] = {
-        description: getReasonPhrase(responseMetadata.statusCode),
-        content: {
-          'application/json': {
-            schema: generateSchema(responseMetadata.schema),
-          },
-        },
-      } satisfies ResponseObject;
-    }
+    openapi.addPath(fullMetadata);
     hono[method](
       path,
       createParamValidator(paramsMetadata),
@@ -214,6 +129,8 @@ export async function createHonoApp({
       },
     );
   }
+
+  openapi.addMissingExceptions();
 
   return {
     hono,

@@ -1,4 +1,4 @@
-import { ZParamsMetadata } from './decorator/params.decorator.js';
+import { ZParamsMetadata } from './decorator/z-params.decorator.js';
 import { validator } from 'hono/validator';
 import { BAD_REQUEST_PARAMS, formatZodErrorString } from '@st-api/core';
 import { throwInternal } from './throw-internal.js';

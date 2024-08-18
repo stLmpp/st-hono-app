@@ -1,4 +1,4 @@
-import { ZQueryMetadata } from './decorator/query.decorator.js';
+import { ZQueryMetadata } from './decorator/z-query.decorator.js';
 import { validator } from 'hono/validator';
 import { BAD_REQUEST_QUERY, formatZodErrorString } from '@st-api/core';
 import { throwInternal } from './throw-internal.js';

@@ -1,4 +1,4 @@
-import { ZBodyMetadata } from './decorator/body.decorator.js';
+import { ZBodyMetadata } from './decorator/z-body.decorator.js';
 import { validator } from 'hono/validator';
 import { BAD_REQUEST_BODY, formatZodErrorString } from '@st-api/core';
 import { throwInternal } from './throw-internal.js';

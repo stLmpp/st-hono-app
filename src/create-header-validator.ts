@@ -1,9 +1,9 @@
-import { HeadersMetadata } from './decorator/headers.decorator.js';
+import { ZHeadersMetadata } from './decorator/z-headers.decorator.js';
 import { validator } from 'hono/validator';
 import { BAD_REQUEST_BODY, formatZodErrorString } from '@st-api/core';
 import { throwInternal } from './throw-internal.js';
 
-export function createHeaderValidator(metadata: HeadersMetadata | undefined) {
+export function createHeaderValidator(metadata: ZHeadersMetadata | undefined) {
   if (!metadata?.schema) {
     return validator('header', (value) => value);
   }
