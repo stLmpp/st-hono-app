@@ -22,6 +22,7 @@ import {
   Exception,
   arrayUniqBy,
 } from '@st-api/core';
+import { ZodObject } from 'zod';
 
 export class Openapi {
   constructor(document: OpenAPIObject) {
@@ -89,6 +90,16 @@ export class Openapi {
           name: key,
           required: !value.isOptional(),
           in: 'path',
+          schema: generateSchema(value),
+        });
+      }
+    }
+    if (headers?.schema) {
+      for (const [key, value] of Object.entries(headers.schema.shape)) {
+        operation.parameters.push({
+          name: key,
+          required: !value.isOptional(),
+          in: 'header',
           schema: generateSchema(value),
         });
       }

@@ -19,6 +19,7 @@ import { createParamValidator } from './create-param-validator.js';
 import { getControllerFullMetadata } from './get-controller-full-metadata.js';
 import { throwInternal } from './throw-internal.js';
 import { Openapi } from './openapi.js';
+import { FORBIDDEN } from './exception.js';
 
 export interface HonoAppOptions {
   hono: Hono;
@@ -76,6 +77,7 @@ export async function createHonoApp({
       response: responseMetadata,
       query: queryMetadata,
       headers: headersMetadata,
+      guard: guardMetadata,
     } = fullMetadata;
     const instance = await injector.register(controller).resolve(controller);
     const rawMethod = metadata.method ?? 'GET';
@@ -104,6 +106,19 @@ export async function createHonoApp({
         }
         if (bodyMetadata) {
           args[bodyMetadata.parameterIndex] = c.req.valid('json');
+        }
+        for (const guard of guardMetadata?.guards ?? []) {
+          const guardInstance = await injector.resolve(guard);
+          const result = await guardInstance.handle({
+            body: c.req.valid('json'),
+            context: c,
+            headers: c.req.valid('header'),
+            params: c.req.valid('param'),
+            query: c.req.valid('query'),
+          });
+          if (!result) {
+            throwInternal(FORBIDDEN());
+          }
         }
         const [error, response] = await safeAsync(() =>
           instance.handle(...args),

@@ -40,7 +40,7 @@ export class RootController implements Handler {
   async handle(
     @ZParams(ParamsSchema) params: ParamsType,
     @ZQuery(ParamsSchema) query: ParamsType,
-    @ZHeaders() headers: Record<string, string>,
+    @ZHeaders(ParamsSchema.partial()) headers: Record<string, string>,
     @ZBody(ParamsSchema) body: ParamsType,
   ): Promise<any> {
     return {
