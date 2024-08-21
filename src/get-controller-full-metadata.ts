@@ -13,10 +13,7 @@ import {
   Exceptions,
   ExceptionsMetadata,
 } from './decorator/exceptions.decorator.js';
-import {
-  UseGuards,
-  UseGuardMetadata,
-} from './decorator/use-guards.decorator.js';
+import { UseGuards, UseGuardMetadata } from './guard/use-guards.decorator.js';
 
 export interface ControllerFullMetadata {
   controller: ControllerOptions;
@@ -43,8 +40,8 @@ export function getControllerFullMetadata(
     query: ZQuery.getMetadata(target, propertyKey),
     headers: ZHeaders.getMetadata(target, propertyKey),
     body: ZBody.getMetadata(target, propertyKey),
-    response: ZRes.getMetadata(target, propertyKey),
-    exceptions: Exceptions.getMetadata(target, propertyKey),
-    guard: UseGuards.getMetadata(target, propertyKey),
+    response: ZRes.getMetadata(target),
+    exceptions: Exceptions.getMetadata(target),
+    guard: UseGuards.getMetadata(target),
   };
 }

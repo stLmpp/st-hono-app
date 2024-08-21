@@ -79,7 +79,10 @@ export async function createHonoApp({
       headers: headersMetadata,
       guard: guardMetadata,
     } = fullMetadata;
-    const instance = await injector.register(controller).resolve(controller);
+    const instance = await injector
+      .register(guardMetadata?.guards ?? [])
+      .register(controller)
+      .resolve(controller);
     const rawMethod = metadata.method ?? 'GET';
     const method = rawMethod.toLowerCase() as Lowercase<MethodType>;
     let path = metadata.path ?? '/';
@@ -87,6 +90,7 @@ export async function createHonoApp({
       path = `/${path}`;
     }
     openapi.addPath(fullMetadata);
+
     hono[method](
       path,
       createParamValidator(paramsMetadata),
@@ -111,7 +115,7 @@ export async function createHonoApp({
           const guardInstance = await injector.resolve(guard);
           const result = await guardInstance.handle({
             body: c.req.valid('json'),
-            context: c,
+            c,
             headers: c.req.valid('header'),
             params: c.req.valid('param'),
             query: c.req.valid('query'),

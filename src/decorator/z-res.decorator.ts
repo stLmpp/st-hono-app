@@ -8,40 +8,20 @@ export interface ZResMetadata {
 }
 
 interface ZRes {
-  (schema?: ZodSchema, status?: number): ClassDecorator & MethodDecorator;
-  getMetadata(
-    target: any,
-    propertyKey: string | symbol | undefined,
-  ): ZResMetadata | undefined;
-  setMetadata(
-    target: any,
-    propertyKey: string | symbol | undefined,
-    metadata: ZResMetadata,
-  ): void;
+  (schema?: ZodSchema, status?: number): ClassDecorator;
+  getMetadata(target: any): ZResMetadata | undefined;
+  setMetadata(target: any, metadata: ZResMetadata): void;
 }
 
-const getMetadata: ZRes['getMetadata'] = (target, propertyKey) =>
-  Reflect.getMetadata(ZResMetadataSymbol, target, propertyKey ?? '') ??
+const getMetadata: ZRes['getMetadata'] = (target) =>
   Reflect.getMetadata(ZResMetadataSymbol, target);
-const setMetadata: ZRes['setMetadata'] = (target, propertyKey, metadata) => {
-  Reflect.defineMetadata(
-    ZResMetadataSymbol,
-    metadata,
-    target,
-    propertyKey ?? '',
-  );
+const setMetadata: ZRes['setMetadata'] = (target, metadata) => {
+  Reflect.defineMetadata(ZResMetadataSymbol, metadata, target);
 };
 
-function Decorator(
-  schema?: ZodSchema,
-  status = 200,
-): ClassDecorator & MethodDecorator {
-  return (
-    target: any,
-    propertyKey?: string | symbol,
-    descriptor?: TypedPropertyDescriptor<any>,
-  ) => {
-    setMetadata(descriptor ? target.constructor : target, propertyKey, {
+function Decorator(schema?: ZodSchema, status = 200): ClassDecorator {
+  return (target: any) => {
+    setMetadata(target, {
       schema: schema ?? z.void(),
       statusCode: status,
     });

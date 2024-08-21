@@ -8,7 +8,10 @@ import { ZBody } from '../src/decorator/z-body.decorator.js';
 import { ZRes } from '../src/decorator/z-res.decorator.js';
 import { StatusCodes } from 'http-status-codes';
 import { Exceptions } from '../src/decorator/exceptions.decorator.js';
+import { UseGuards } from '../src/guard/use-guards.decorator.js';
+import { Guard } from './guard.js';
 
+// TODO move this interface
 export interface Handler {
   handle(...args: any[]): any | Promise<any>;
 }
@@ -25,18 +28,19 @@ const exception_1 = exception({
   errorCode: '123',
 });
 
+@Exceptions([exception_1])
+@ZRes(
+  z.object({
+    id: z.number(),
+  }),
+  StatusCodes.CREATED,
+)
+@UseGuards(Guard)
 @Controller({
   path: '/:id',
   method: 'POST',
 })
 export class RootController implements Handler {
-  @Exceptions([exception_1])
-  @ZRes(
-    z.object({
-      id: z.number(),
-    }),
-    StatusCodes.CREATED,
-  )
   async handle(
     @ZParams(ParamsSchema) params: ParamsType,
     @ZQuery(ParamsSchema) query: ParamsType,

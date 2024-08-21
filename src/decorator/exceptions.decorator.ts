@@ -7,43 +7,20 @@ export interface ExceptionsMetadata {
 }
 
 interface Exceptions {
-  (factories: ExceptionFactory[]): ClassDecorator & MethodDecorator;
-  getMetadata(
-    target: any,
-    propertyKey: string | symbol | undefined,
-  ): ExceptionsMetadata | undefined;
-  setMetadata(
-    target: any,
-    propertyKey: string | symbol | undefined,
-    metadata: ExceptionsMetadata,
-  ): void;
+  (factories: ExceptionFactory[]): ClassDecorator;
+  getMetadata(target: any): ExceptionsMetadata | undefined;
+  setMetadata(target: any, metadata: ExceptionsMetadata): void;
 }
 
-const getMetadata: Exceptions['getMetadata'] = (target, propertyKey) =>
-  Reflect.getMetadata(ExceptionsMetadataSymbol, target, propertyKey ?? '') ??
+const getMetadata: Exceptions['getMetadata'] = (target) =>
   Reflect.getMetadata(ExceptionsMetadataSymbol, target);
-const setMetadata: Exceptions['setMetadata'] = (
-  target,
-  propertyKey,
-  metadata,
-) => {
-  Reflect.defineMetadata(
-    ExceptionsMetadataSymbol,
-    metadata,
-    target,
-    propertyKey ?? '',
-  );
+const setMetadata: Exceptions['setMetadata'] = (target, metadata) => {
+  Reflect.defineMetadata(ExceptionsMetadataSymbol, metadata, target);
 };
 
-function Decorator(
-  factories: ExceptionFactory[],
-): ClassDecorator & MethodDecorator {
-  return (
-    target: any,
-    propertyKey?: string | symbol,
-    descriptor?: TypedPropertyDescriptor<any>,
-  ) => {
-    setMetadata(descriptor ? target.constructor : target, propertyKey, {
+function Decorator(factories: ExceptionFactory[]): ClassDecorator {
+  return (target: any) => {
+    setMetadata(target, {
       factories,
     });
   };

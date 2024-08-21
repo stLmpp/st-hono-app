@@ -5,5 +5,5 @@ export interface HandlerContext {
   query: Record<string, unknown>;
   headers: Record<string, unknown>;
   body?: unknown;
-  context: Context;
+  c: Context;
 }
