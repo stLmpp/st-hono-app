@@ -35,7 +35,7 @@ const exception_1 = exception({
   }),
   StatusCodes.CREATED,
 )
-@UseGuards(Guard)
+// @UseGuards(Guard)
 @Controller({
   path: '/:id',
   method: 'POST',

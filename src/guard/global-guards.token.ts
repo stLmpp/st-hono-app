@@ -1,4 +1,6 @@
 import { InjectionToken } from '@stlmpp/di';
+import { CanActivate } from './can-activate.interface.js';
 
-// TODO implement
-export const GLOBAL_GUARD = new InjectionToken('GLOBAL_GUARD');
+export const GLOBAL_GUARDS = new InjectionToken<CanActivate>(
+  'ST_HONO_APP_GLOBAL_GUARDS',
+);

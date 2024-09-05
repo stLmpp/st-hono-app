@@ -20,6 +20,7 @@ import { getControllerFullMetadata } from './get-controller-full-metadata.js';
 import { throwInternal } from './throw-internal.js';
 import { Openapi } from './openapi.js';
 import { FORBIDDEN } from './exception.js';
+import { GLOBAL_GUARDS } from './guard/global-guards.token.js';
 
 export interface HonoAppOptions {
   hono: Hono;
@@ -62,6 +63,10 @@ export async function createHonoApp({
       }),
     )
     .get('/help', (c) => c.redirect('/openapi', StatusCodes.MOVED_PERMANENTLY));
+
+  const globalGuards = await injector.resolveAll(GLOBAL_GUARDS, {
+    optional: true,
+  });
 
   for (const controller of controllers) {
     const fullMetadata = getControllerFullMetadata(controller);
@@ -111,8 +116,10 @@ export async function createHonoApp({
         if (bodyMetadata) {
           args[bodyMetadata.parameterIndex] = c.req.valid('json');
         }
-        for (const guard of guardMetadata?.guards ?? []) {
-          const guardInstance = await injector.resolve(guard);
+        const guards = [...(guardMetadata?.guards ?? []), ...globalGuards];
+        for (const guard of guards) {
+          const guardInstance =
+            typeof guard === 'function' ? await injector.resolve(guard) : guard;
           const result = await guardInstance.handle({
             body: c.req.valid('json'),
             c,
