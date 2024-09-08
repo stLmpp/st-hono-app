@@ -83,6 +83,7 @@ export async function createHonoApp({
       query: queryMetadata,
       headers: headersMetadata,
       guard: guardMetadata,
+      ctx: ctxMetadata,
     } = fullMetadata;
     const instance = await injector
       .register(guardMetadata?.guards ?? [])
@@ -115,6 +116,9 @@ export async function createHonoApp({
         }
         if (bodyMetadata) {
           args[bodyMetadata.parameterIndex] = c.req.valid('json');
+        }
+        if (ctxMetadata) {
+          args[ctxMetadata.parameterIndex] = c;
         }
         const guards = [...(guardMetadata?.guards ?? []), ...globalGuards];
         for (const guard of guards) {

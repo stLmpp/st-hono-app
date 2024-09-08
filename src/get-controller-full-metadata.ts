@@ -14,6 +14,7 @@ import {
   ExceptionsMetadata,
 } from './decorator/exceptions.decorator.js';
 import { UseGuards, UseGuardMetadata } from './guard/use-guards.decorator.js';
+import { Ctx, CtxMetadata } from './decorator/ctx.decorator.js';
 
 export interface ControllerFullMetadata {
   controller: ControllerOptions;
@@ -24,6 +25,7 @@ export interface ControllerFullMetadata {
   response: ZResMetadata | undefined;
   exceptions: ExceptionsMetadata | undefined;
   guard: UseGuardMetadata | undefined;
+  ctx: CtxMetadata | undefined;
 }
 
 export function getControllerFullMetadata(
@@ -43,5 +45,6 @@ export function getControllerFullMetadata(
     response: ZRes.getMetadata(target),
     exceptions: Exceptions.getMetadata(target),
     guard: UseGuards.getMetadata(target),
+    ctx: Ctx.getMetadata(target, propertyKey),
   };
 }
